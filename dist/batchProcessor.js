@@ -78,7 +78,7 @@ class BatchProcessor {
                         .toISOString()
                         .replace(/[:.]/g, "-");
                     const recordId = path.basename(file, ".apex");
-                    const resultPath = path.join(this.resultsDir, `success_${timestamp}_${recordId}.txt`);
+                    const resultPath = path.join(this.resultsDir, `success_${recordId}_${timestamp}.txt`);
                     await fs.writeFile(resultPath, `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`);
                     successful++;
                 }
@@ -87,7 +87,7 @@ class BatchProcessor {
                         .toISOString()
                         .replace(/[:.]/g, "-");
                     const recordId = path.basename(file, ".apex");
-                    const resultPath = path.join(this.resultsDir, `failure_${timestamp}_${recordId}.txt`);
+                    const resultPath = path.join(this.resultsDir, `failure_${recordId}_${timestamp}.txt`);
                     await fs.writeFile(resultPath, `ERROR:\n${error.message}\n\nSTDOUT:\n${error.stdout || ""}\n\nSTDERR:\n${error.stderr || ""}`);
                     failed++;
                 }
