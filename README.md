@@ -1,7 +1,7 @@
-# Salesforce Batch DX
+# Local Batch Apex
 
 ## Description
-Salesforce Batch DX is an Electron-based application designed to facilitate batch processing of Salesforce data using Salesforce DX. It provides a user-friendly interface for executing batch jobs, managing Salesforce organizations, and handling Apex file generation.
+Local Batch Apex is an Electron-based application designed to facilitate batch processing of Salesforce data using Salesforce DX. It provides a user-friendly interface for executing batch jobs, managing Salesforce organizations, and handling Apex file generation.
 
 ## Installation
 1. Clone the repository:
