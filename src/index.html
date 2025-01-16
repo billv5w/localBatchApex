@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+    <title>Salesforce Batch DX</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+            line-height: 1.4;
+            color: #16325c;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 24px;
+            color: #16325c;
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #16325c;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d8dde6;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #ffffff;
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #0070d2;
+            box-shadow: 0 0 3px #0070d2;
+        }
+
+        textarea {
+            min-height: 120px;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            resize: vertical;
+            overflow-x: hidden;
+            overflow-y: auto;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-group button {
+            padding: 8px 16px;
+            border: 1px solid #d8dde6;
+            border-radius: 4px;
+            background-color: #fff;
+            color: #0070d2;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .button-group button:hover {
+            background-color: #f4f6f9;
+        }
+
+        .button-group button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .org-selector-group {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .org-selector-group select {
+            flex: 1;
+        }
+
+        .org-selector-group button {
+            padding: 8px 16px;
+            border: 1px solid #d8dde6;
+            border-radius: 4px;
+            background-color: #fff;
+            color: #0070d2;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .org-selector-group button:hover {
+            background-color: #f4f6f9;
+        }
+
+        .org-selector-group button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #results {
+            margin-top: 24px;
+            padding: 16px;
+            border: 1px solid #d8dde6;
+            border-radius: 4px;
+            background-color: #f8f9fc;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .error {
+            color: #c23934;
+            padding: 8px;
+            margin: 8px 0;
+            background-color: #fafaf9;
+            border-left: 4px solid #c23934;
+        }
+
+        .loading-indicator {
+            display: inline-block;
+            margin-left: 8px;
+            color: #706e6b;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: #706e6b;
+            font-style: italic;
+            margin-top: 4px;
+            font-size: 12px;
+        }
+
+        pre {
+            background-color: #f3f3f3;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            overflow-x: auto;
+        }
+
+        .folder-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .folder-buttons button {
+            padding: 4px 8px;
+            font-size: 12px;
+            color: #0070d2;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .folder-buttons button:hover {
+            text-decoration: underline;
+        }
+
+        .folder-buttons button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        .validation-message {
+            color: #c23934;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .form-group.error input,
+        .form-group.error textarea,
+        .form-group.error select {
+            border-color: #c23934;
+        }
+
+        .form-group.error .validation-message {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Salesforce Batch DX</h1>
+
+        <div class="form-group">
+            <label for="jobName">Job Name: <span class="required">(required for both running and
+                    resuming)</span></label>
+            <input type="text" id="jobName" required placeholder="Enter a name for your job">
+            <div class="validation-message">Please enter a job name</div>
+        </div>
+
+        <div class="form-group">
+            <label for="targetOrg">Target Organization:</label>
+            <div class="org-selector-group">
+                <select id="targetOrg" required>
+                    <option value="" disabled selected>Loading organizations... ⟳</option>
+                </select>
+                <button id="refreshOrgs" title="Refresh organization list">Refresh List</button>
+                <button id="openOrg" disabled>Open Org</button>
+            </div>
+            <div class="validation-message">Please select a target organization</div>
+            <div id="orgLoadingStatus" class="loading-text"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="soqlQuery">SOQL Query:</label>
+            <textarea id="soqlQuery" required spellcheck="false">SELECT Id FROM Account</textarea>
+            <div class="validation-message">Please enter a SOQL query</div>
+        </div>
+
+        <div class="form-group">
+            <label for="apexTemplate">Apex Template:</label>
+            <textarea id="apexTemplate" required spellcheck="false">Account acc = [SELECT Name, Description, Id FROM Account WHERE Id = :recordId];
+acc.Description = 'Cool';
+update acc;</textarea>
+            <div class="validation-message">Please enter an Apex template</div>
+        </div>
+
+        <div class="button-group">
+            <button id="prepareBatch">Prepare Files</button>
+            <button id="runBatch" disabled>Execute Batch</button>
+            <button id="pauseBatch" disabled>Pause</button>
+            <button id="resumeBatch">Resume Last Job</button>
+        </div>
+
+        <div class="folder-buttons">
+            <button id="openScripts" disabled title="Open scripts folder">
+                📁 View Scripts
+            </button>
+            <button id="openResults" disabled title="Open results folder">
+                📁 View Results
+            </button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+    <script type="module" src="renderer.js"></script>
+</body>
+
+</html>

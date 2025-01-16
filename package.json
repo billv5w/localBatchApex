@@ -1,0 +1,21 @@
+{
+  "name": "salesforce-batch-dx",
+  "version": "1.0.0",
+  "description": "Batch processing tool for Salesforce DX",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "tsc && npm run copy-files",
+    "watch": "tsc -w",
+    "dev": "npm run build && electron .",
+    "copy-files": "copyfiles -u 1 src/*.html dist/"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "copyfiles": "^2.4.1",
+    "electron": "^29.1.0",
+    "typescript": "^5.3.3"
+  }
+}
