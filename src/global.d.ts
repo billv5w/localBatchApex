@@ -18,7 +18,8 @@ interface ElectronAPI {
         jobName: string,
         soqlQuery: string,
         apexTemplate: string,
-        targetOrg: string
+        targetOrg: string,
+        concurrencyLimit: number
     ) => Promise<void>;
     pauseBatchProcess: (jobName: string) => Promise<void>;
     resumeBatchProcess: (jobName: string, targetOrg: string) => Promise<void>;

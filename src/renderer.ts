@@ -397,11 +397,18 @@ runBatchBtn.addEventListener("click", async () => {
         isProcessing = true;
         currentJobName = preparedJobName;
 
+        // Get the concurrency limit value from the input.
+        const concurrencyLimitInput = document.getElementById(
+            "concurrencyLimit"
+        ) as HTMLInputElement;
+        const concurrencyLimit = parseInt(concurrencyLimitInput.value, 10) || 5;
+
         await (window.electronAPI as any).runBatchProcess(
             preparedJobName,
             soqlInput.value,
             apexTemplateInput.value,
-            targetOrgSelect.value
+            targetOrgSelect.value,
+            concurrencyLimit
         );
 
         isProcessing = false;

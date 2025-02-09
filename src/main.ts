@@ -645,33 +645,17 @@ ipcMain.handle(
         jobName: string,
         soqlQuery: string,
         apexTemplate: string,
-        targetOrg: string
+        targetOrg: string,
+        concurrencyLimit: number
     ) => {
-        try {
-            const result = await batchProcessor.runBatchProcess({
-                jobName,
-                targetOrg,
-                recordIds: [], // Not needed for running, only for preparation
-                apexTemplate,
-                onProgress: (message) => {
-                    event.sender.send("processUpdate", message);
-                },
-            });
-
-            // Update job status
-            await saveJobToStorage(jobName, {
-                targetOrg,
-                soqlQuery,
-                apexTemplate,
-                status: "completed",
-                result,
-                timestamp: new Date().toISOString(),
-            });
-
-            return result;
-        } catch (error) {
-            console.error("Error running batch process:", error);
-            throw error;
-        }
+        await batchProcessor.runBatchProcess({
+            jobName,
+            targetOrg,
+            apexTemplate,
+            recordIds: [], // not used in runBatchProcess
+            onProgress: (message: string) =>
+                event.sender.send("processUpdate", message),
+            concurrencyLimit: concurrencyLimit,
+        });
     }
 );

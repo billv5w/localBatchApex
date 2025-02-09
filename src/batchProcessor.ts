@@ -11,6 +11,7 @@ export interface BatchProcessOptions {
     recordIds: string[];
     apexTemplate: string;
     onProgress?: (message: string) => void;
+    concurrencyLimit?: number;
 }
 
 export interface BatchProcessResult {
@@ -105,76 +106,100 @@ export class BatchProcessor {
             const total = apexFiles.length;
 
             this.log(`Total scripts to process: ${total}`, options);
+            // resume flag is false initially if a checkpoint exists
             let resume = !lastExecuted;
 
-            for (const file of apexFiles) {
-                if (this.isPaused) {
-                    await fs.writeFile(this.pauseFile, "");
-                    break;
-                }
+            // Concurrency pool implementation:
+            let index = 0;
+            const concurrencyLimit =
+                options.concurrencyLimit && options.concurrencyLimit > 0
+                    ? options.concurrencyLimit
+                    : 5;
 
-                const fullPath = path.join(this.apexDir, file);
-
-                // Handle resume logic with case-insensitive comparison
-                if (!resume) {
-                    if (fullPath.toLowerCase() === lastExecuted.toLowerCase()) {
-                        resume = true;
+            const processNext = async () => {
+                while (true) {
+                    if (this.isPaused) {
+                        // If paused, write the pause file and stop processing
+                        await fs.writeFile(this.pauseFile, "");
+                        return;
                     }
-                    continue;
+                    // Atomically grab the next file index
+                    const currentIndex = index;
+                    index++;
+                    if (currentIndex >= apexFiles.length) break;
+
+                    const file = apexFiles[currentIndex];
+                    const fullPath = path.join(this.apexDir, file);
+
+                    // Handle resume logic: skip files until the checkpoint is reached.
+                    if (!resume) {
+                        if (
+                            fullPath.toLowerCase() ===
+                            lastExecuted.toLowerCase()
+                        ) {
+                            resume = true;
+                        }
+                        if (!resume) continue; // Skip until resume is set
+                    }
+
+                    const currentCount = successful + failed + 1;
+                    this.log(
+                        `Processing script ${currentCount}/${total}: ${file}`,
+                        options
+                    );
+
+                    try {
+                        const { stdout, stderr } = await execAsync(
+                            `sf apex run --file "${fullPath}" --target-org "${options.targetOrg}"`
+                        );
+
+                        const timestamp = new Date()
+                            .toISOString()
+                            .replace(/[:.]/g, "-");
+                        const recordId = path.basename(file, ".apex");
+                        const resultPath = path.join(
+                            this.resultsDir,
+                            `success_${recordId}_${timestamp}.txt`
+                        );
+
+                        await fs.writeFile(
+                            resultPath,
+                            `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`
+                        );
+                        successful++;
+                    } catch (error: any) {
+                        const timestamp = new Date()
+                            .toISOString()
+                            .replace(/[:.]/g, "-");
+                        const recordId = path.basename(file, ".apex");
+                        const resultPath = path.join(
+                            this.resultsDir,
+                            `failure_${recordId}_${timestamp}.txt`
+                        );
+
+                        await fs.writeFile(
+                            resultPath,
+                            `ERROR:\n${error.message}\n\nSTDOUT:\n${
+                                error.stdout || ""
+                            }\n\nSTDERR:\n${error.stderr || ""}`
+                        );
+                        failed++;
+                    }
+
+                    this.log(
+                        `Progress: ${successful} successful, ${failed} failed`,
+                        options
+                    );
                 }
+            };
 
-                this.log(
-                    `Processing script ${
-                        successful + failed + 1
-                    }/${total}: ${file}`,
-                    options
-                );
-
-                try {
-                    const { stdout, stderr } = await execAsync(
-                        `sf apex run --file "${fullPath}" --target-org "${options.targetOrg}"`
-                    );
-
-                    const timestamp = new Date()
-                        .toISOString()
-                        .replace(/[:.]/g, "-");
-                    const recordId = path.basename(file, ".apex");
-                    const resultPath = path.join(
-                        this.resultsDir,
-                        `success_${recordId}_${timestamp}.txt`
-                    );
-
-                    await fs.writeFile(
-                        resultPath,
-                        `STDOUT:\n${stdout}\n\nSTDERR:\n${stderr}`
-                    );
-                    successful++;
-                } catch (error) {
-                    const timestamp = new Date()
-                        .toISOString()
-                        .replace(/[:.]/g, "-");
-                    const recordId = path.basename(file, ".apex");
-                    const resultPath = path.join(
-                        this.resultsDir,
-                        `failure_${recordId}_${timestamp}.txt`
-                    );
-
-                    await fs.writeFile(
-                        resultPath,
-                        `ERROR:\n${error.message}\n\nSTDOUT:\n${
-                            error.stdout || ""
-                        }\n\nSTDERR:\n${error.stderr || ""}`
-                    );
-                    failed++;
-                }
-
-                this.log(
-                    `Progress: ${successful} successful, ${failed} failed`,
-                    options
-                );
+            const workers = [];
+            for (let i = 0; i < concurrencyLimit; i++) {
+                workers.push(processNext());
             }
+            await Promise.all(workers);
         } finally {
-            // Cleanup
+            // Cleanup: remove checkpoint and pause file if not paused
             if (!this.isPaused) {
                 await fs.rm(this.checkpointFile).catch(() => {});
                 await fs.rm(this.pauseFile).catch(() => {});

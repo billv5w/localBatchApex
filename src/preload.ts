@@ -23,14 +23,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
         jobName: string,
         soqlQuery: string,
         apexTemplate: string,
-        targetOrg: string
+        targetOrg: string,
+        concurrencyLimit: number
     ) =>
         ipcRenderer.invoke(
             "runBatchProcess",
             jobName,
             soqlQuery,
             apexTemplate,
-            targetOrg
+            targetOrg,
+            concurrencyLimit
         ),
     pauseBatchProcess: (jobName: string) =>
         ipcRenderer.invoke("pauseBatchProcess", jobName),
